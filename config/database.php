@@ -48,7 +48,7 @@ return [
             'url' => env('DATABASE_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => 'productapi',
+            'database' => 'productapi1',
             'username' => 'mah',
             'password' => 'mah',
             'unix_socket' => env('DB_SOCKET', ''),

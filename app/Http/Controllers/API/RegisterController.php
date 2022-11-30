@@ -20,6 +20,7 @@ class RegisterController extends BaseController
             'email' =>'required|email',
             'password' =>'required',
             'c_password' =>'required|same:password',
+            'type_user' => 'required'
         ]);
 
         if ($validator->fails()) {
@@ -31,6 +32,7 @@ class RegisterController extends BaseController
             $user = User::create($input);
             $success['token'] = $user->createToken('Mahmoud')->accessToken;
             $success['name'] = $user->name;
+            $success['type_user'] = $user->type_user;
 
         return $this->sendResponse($success ,'User registered successfully' );
     }

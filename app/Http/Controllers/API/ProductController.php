@@ -8,6 +8,7 @@ use App\Models\Product;
 use Validator;
 use App\Http\Resources\Product as ProductResource;
 use App\Http\Controllers\API\BaseController as BaseController;
+use Illuminate\Support\Facades\Auth;
 
 
 
@@ -52,8 +53,10 @@ class ProductController extends BaseController
         if ($validator->fails()) {
         return $this->sendError('Please validate error' ,$validator->errors() );
         }
+        $user = Auth::user();
+        $input['user_id'] = $user->id;
         $product = Product::create($input);
-        return $this->sendResponse(new ProductResource($product) ,'Product created successfully' );
+        return $this->sendResponse($product ,'Product created successfully' );
 
     }
 
@@ -66,51 +69,55 @@ class ProductController extends BaseController
     public function show($id)
     {
         $product = Product::find($id);
+        $user = Auth::user();
+        $errorMessage = [];
+
         if ( is_null($product) )
         {
-            return $this->sendError('Product not found'  );
+            return $this->sendError('Product not found',$errorMessage );
         }
-        return $this->sendResponse(new ProductResource($product) ,'Product found successfully' );
+
+        if ( $product->user_id != Auth::id() && $user->type_user != 'admin' ) {
+            return $this->sendError('you dont have rights' , $errorMessage);
+        }
+
+        return $this->sendResponse($product ,'Product found successfully' );
 
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function edit($id)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Product $product)
+    public function update(Request $request, $id)
     {
+        $product = Product::find($id);
+        $user = Auth::user();
+        $errorMessage = [];
         $input = $request->all();
+        if ( is_null($product) )
+        {
+            return $this->sendError('Product not found',$errorMessage );
+        }
+        else if ( $product->user_id != Auth::id() && $user->type_user != 'admin' )
+        {
+            return $this->sendError('you dont have rights' , $errorMessage);
+        }
         $validator = Validator::make($input , [
             'name'=> 'required',
             'detail'=> 'required',
             'price'=> 'required'
             ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation error' , $validator->errors());
+            }
 
-        if ($validator->fails())
-        {
-            return $this->sendError('Please validate error' ,$validator->errors() );
-        }
         $product->name = $input['name'];
         $product->detail = $input['detail'];
         $product->price = $input['price'];
         $product->save();
-        return $this->sendResponse(new ProductResource($product) ,'Product updated successfully' );
-
+        return $this->sendResponse($product ,'Product updated successfully' );
     }
 
     /**
@@ -119,8 +126,18 @@ class ProductController extends BaseController
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Product $product)
+    public function destroy($id)
     {
+        $product = Product::find($id);
+        $user = Auth::user();
+        $errorMessage = [] ;
+        if ( is_null($product) )
+        {
+            return $this->sendError('Product not found',$errorMessage );
+        }
+        if ( $product->user_id != Auth::id() && $user->type_user != 'admin' ) {
+            return $this->sendError('you dont have rights' , $errorMessage);
+        }
         $product->delete();
         return $this->sendResponse(new ProductResource($product) ,'Product deleted successfully' );
     }
