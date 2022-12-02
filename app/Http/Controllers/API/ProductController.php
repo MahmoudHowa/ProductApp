@@ -69,7 +69,6 @@ class ProductController extends BaseController
     public function show($id)
     {
         $product = Product::find($id);
-        $user = Auth::user();
         $errorMessage = [];
 
         if ( is_null($product) )
@@ -77,11 +76,15 @@ class ProductController extends BaseController
             return $this->sendError('Product not found',$errorMessage );
         }
 
-        if ( $product->user_id != Auth::id() && $user->type_user != 'admin' ) {
+        if (Auth::user()->can('view', $product))
+        {
+            return $this->sendResponse($product ,'Product found successfully' );
+        }
+        else
+        {
             return $this->sendError('you dont have rights' , $errorMessage);
         }
 
-        return $this->sendResponse($product ,'Product found successfully' );
 
     }
 
@@ -93,31 +96,37 @@ class ProductController extends BaseController
     public function update(Request $request, $id)
     {
         $product = Product::find($id);
-        $user = Auth::user();
         $errorMessage = [];
         $input = $request->all();
         if ( is_null($product) )
         {
             return $this->sendError('Product not found',$errorMessage );
         }
-        else if ( $product->user_id != Auth::id() && $user->type_user != 'admin' )
+        // else if ( $product->user_id != Auth::id() && $user->type_user != 'admin' )
+        // {
+        //     return $this->sendError('you dont have rights' , $errorMessage);
+        // }
+        if (Auth::user()->can('update', $product))
+        {
+            $validator = Validator::make($input , [
+                'name'=> 'required',
+                'detail'=> 'required',
+                'price'=> 'required'
+                ]);
+                if ($validator->fails()) {
+                    return $this->sendError('Validation error' , $validator->errors());
+                }
+
+            $product->name = $input['name'];
+            $product->detail = $input['detail'];
+            $product->price = $input['price'];
+            $product->save();
+            return $this->sendResponse($product ,'Product updated successfully' );
+        }
+        else
         {
             return $this->sendError('you dont have rights' , $errorMessage);
         }
-        $validator = Validator::make($input , [
-            'name'=> 'required',
-            'detail'=> 'required',
-            'price'=> 'required'
-            ]);
-            if ($validator->fails()) {
-                return $this->sendError('Validation error' , $validator->errors());
-            }
-
-        $product->name = $input['name'];
-        $product->detail = $input['detail'];
-        $product->price = $input['price'];
-        $product->save();
-        return $this->sendResponse($product ,'Product updated successfully' );
     }
 
     /**
@@ -129,16 +138,20 @@ class ProductController extends BaseController
     public function destroy($id)
     {
         $product = Product::find($id);
-        $user = Auth::user();
         $errorMessage = [] ;
         if ( is_null($product) )
         {
             return $this->sendError('Product not found',$errorMessage );
         }
-        if ( $product->user_id != Auth::id() && $user->type_user != 'admin' ) {
+        //
+        if (Auth::user()->can('delete', $product))
+        {
+            $product->delete();
+            return $this->sendResponse(new ProductResource($product) ,'Product deleted successfully' );
+        }
+        else
+        {
             return $this->sendError('you dont have rights' , $errorMessage);
         }
-        $product->delete();
-        return $this->sendResponse(new ProductResource($product) ,'Product deleted successfully' );
     }
 }
